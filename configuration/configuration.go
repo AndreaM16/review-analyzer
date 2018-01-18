@@ -14,8 +14,10 @@ type Configuration struct {
 		HOST      string `json:"HOST"`
 		PORT      string    `json:"PORT"`
 		ENDPOINTS struct {
+			BASE string `json:"BASE"`
 			ITEM   string `json:"ITEM"`
 			REVIEW string `json:"REVIEW"`
+			PRICE string `json:"PRICE"`
 		} `json:"ENDPOINTS"`
 	} `json:"REMOTE"`
 }

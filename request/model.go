@@ -19,3 +19,13 @@ type Reviews struct {
 	Item string `json:"item,omitempty"`
 	Reviews []Review `json:"reviews"`
 }
+
+type Prices struct {
+	Item string `json:"item"`
+	Prices []Price `json:"prices"`
+}
+
+type Price struct {
+	Price float64 `json:"Price"`
+	Date string `json:"date"`
+}

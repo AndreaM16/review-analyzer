@@ -11,8 +11,8 @@ type ReviewQueryParameters struct {
 }
 
 type ReviewsResponse struct {
-	Reviews Reviews `json:"reviews"`
-	Error error `json:"error"`
+	Reviews Reviews
+	Error error
 }
 
 func GetReviewsByItem(item string) ReviewsResponse {
@@ -22,9 +22,8 @@ func GetReviewsByItem(item string) ReviewsResponse {
 		return ReviewsResponse{Reviews{}, responseError}
 	}
 	defer response.Body.Close()
-	reviews, ok := unmarshalHttpResponseIntoInterface(response).(Reviews); if !ok {
-		return ReviewsResponse{Reviews{}, errors.New("unable to unmarshal reviews")}
-	}
+	var reviews Reviews
+	_ = unmarshalHttpResponseIntoInterface(response, &reviews)
 	if len(reviews.Reviews) == 0 {
 		return ReviewsResponse{ reviews, errors.New(fmt.Sprintf("no reviews found for item %s", item)) }
 	}

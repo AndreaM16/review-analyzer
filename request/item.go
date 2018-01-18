@@ -3,6 +3,7 @@ package request
 import (
 	"net/http"
 	"errors"
+	"fmt"
 )
 
 type ItemQueryParameters struct {
@@ -11,8 +12,8 @@ type ItemQueryParameters struct {
 }
 
 type ItemsResponse struct {
-	Items Items `json:"items"`
-	Error error `json:"error"`
+	Items Items
+	Error error
 }
 
 func GetPaginatedItems(page, size int) ItemsResponse {
@@ -22,8 +23,10 @@ func GetPaginatedItems(page, size int) ItemsResponse {
 		return ItemsResponse{Items{}, responseError}
 	}
 	defer response.Body.Close()
-	items, ok := unmarshalHttpResponseIntoInterface(response).(Items); if !ok || len(items.Items) == 0 {
-		return ItemsResponse{Items{}, errors.New("unable to unmarshal items")}
+	var items Items
+	_ = unmarshalHttpResponseIntoInterface(response, &items)
+	if len(items.Items) == 0 {
+		return ItemsResponse{Items{}, errors.New(fmt.Sprintf("no items found for page: %d, size: %d", page, size))}
 	}
 	return ItemsResponse{ items, responseError }
 }
