@@ -1,0 +1,10 @@
+{
+  "REMOTE" : {
+    "HOST" : "http://xx.xxx.xxx.xxx",
+    "PORT" : "80",
+    "ENDPOINTS" : {
+      "ITEM" : "item",
+      "REVIEW" : "review"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import sys
 
 analyzer = SentimentIntensityAnalyzer()
 
