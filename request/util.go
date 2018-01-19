@@ -20,7 +20,7 @@ func getQueryURLByEndpointAndQueryParameters(endpoint string, queryParameters in
 func getReviewRequestQueryURL() string {
 	config := configuration.GetConfiguration()
 	mainURL := strings.Join([]string{config.REMOTE.HOST, config.REMOTE.PORT}, ":")
-	return strings.Join([]string{mainURL, config.REMOTE.ENDPOINTS.BASE, config.REMOTE.ENDPOINTS.REVIEWTMP}, "/")
+	return strings.Join([]string{mainURL, config.REMOTE.ENDPOINTS.BASE, config.REMOTE.ENDPOINTS.REVIEW}, "/")
 }
 
 func unmarshalHttpResponseIntoInterface(r *http.Response, v interface{}) interface{} {
