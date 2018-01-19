@@ -20,6 +20,17 @@ type Reviews struct {
 	Reviews []Review `json:"reviews"`
 }
 
+type AnalyzedReviews struct {
+	Reviews []AnalyzedReview `json:"reviews"`
+}
+
+type AnalyzedReview struct {
+	Content string `json:"content,omitempty"`
+	Date string `json:"date"`
+	Sentiment float64 `json:"sentiment"`
+	Stars float64 `json:"stars"`
+}
+
 type Prices struct {
 	Item string `json:"item"`
 	Prices []Price `json:"prices"`

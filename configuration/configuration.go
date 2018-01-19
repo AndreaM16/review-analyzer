@@ -17,6 +17,7 @@ type Configuration struct {
 			BASE string `json:"BASE"`
 			ITEM   string `json:"ITEM"`
 			REVIEW string `json:"REVIEW"`
+			REVIEWTMP string `json:"REVIEW_TMP"`
 			PRICE string `json:"PRICE"`
 		} `json:"ENDPOINTS"`
 	} `json:"REMOTE"`

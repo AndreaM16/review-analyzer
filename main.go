@@ -1,13 +1,14 @@
 package main
 
-import "github.com/andream16/review-analyzer/algorithm"
+import (
+	"github.com/andream16/review-analyzer/algorithm"
+	"fmt"
+	"os"
+)
 
 func main() {
-	/*sentiment, err := executor.GetSentimentAnalysisFromSentence("Hey there I love you")
-	if err != nil {
+	err := algorithm.StartAlgorithm(); if err != nil {
 		fmt.Println(err.Error())
-	} else {
-		fmt.Println(fmt.Sprintf("Got %f", sentiment))
-	}*/
-	algorithm.StartAlgorithm()
+		os.Exit(1)
+	}
 }

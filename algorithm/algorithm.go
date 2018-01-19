@@ -13,16 +13,6 @@ import (
 const timeLayout = "2006-01-02"
 var nextDay = [4]int{ 0, 0, 1, -1 }
 
-type AnalyzedReviews struct {
-	Reviews []AnalyzedReview `json:"reviews"`
-}
-
-type AnalyzedReview struct {
-	Date string `json:"date"`
-	Sentiment float64 `json:"sentiment"`
-	Stars float64 `json:"stars"`
-}
-
 func StartAlgorithm() error {
 	configuration.InitConfiguration()
 	itemsResponse := request.GetPaginatedItems(1, 100); if itemsResponse.Error != nil {
@@ -35,71 +25,94 @@ func StartAlgorithm() error {
 		if len(reviewsResponse.Reviews.Reviews) > 0 {
 			flattenReviews := getFlattenReviews(reviewsResponse.Reviews); if len(flattenReviews) > 0 {
 				fittedReviews := fitMissingReviews(flattenReviews)
-				fmt.Println(fittedReviews)
+				postError := request.PostReviewsByItem(item.Item, fittedReviews); if postError != nil {
+					return postError
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func fitMissingReviews(reviews []AnalyzedReview) []AnalyzedReview {
-	fittedReviews := make([]AnalyzedReview, 0)
-	for i := 0; i <= len(reviews); i++ {
-		fittedReviews = append(fittedReviews, fitMissingDays(reviews[i], reviews[i+1], []AnalyzedReview{})...)
+func fitMissingReviews(reviews []request.AnalyzedReview) []request.AnalyzedReview {
+	var fittedReviews []request.AnalyzedReview
+	for i := 0; i < len(reviews); i++ {
+		if i == 0 {
+			fittedReviews = append(fittedReviews, reviews[i])
+		}
+		if i < len(reviews) - 1 {
+			fittedReviews = append(fittedReviews, fitMissingDays(reviews[i], reviews[i + 1], []request.AnalyzedReview{})...)
+		}
 	}
 	return fittedReviews
 }
 
-func fitMissingDays(lastEntry AnalyzedReview, finalEntry AnalyzedReview, reviews []AnalyzedReview) []AnalyzedReview {
+func fitMissingDays(lastEntry request.AnalyzedReview, finalEntry request.AnalyzedReview, reviews []request.AnalyzedReview) []request.AnalyzedReview {
 	if lastEntry.Date == finalEntry.Date {
 		return reviews
 	}
-	currentDayDateAsTime, _ := time.Parse(timeLayout, lastEntry.Date)
-	nextDay := dateToString(currentDayDateAsTime.AddDate(nextDay[0], nextDay[1], nextDay[2]))
+	currentDayDateAsTime, timeParseErr := time.Parse(timeLayout, lastEntry.Date); if timeParseErr != nil {
+		fmt.Println(timeParseErr.Error())
+	}
+	nextDayAsString := dateToString(currentDayDateAsTime.AddDate(nextDay[0], nextDay[1], nextDay[2]))
 	starsAvg := (lastEntry.Stars + finalEntry.Stars) / 2
 	sentimentAvg := (lastEntry.Sentiment + finalEntry.Sentiment) / 2
-	currentEntry := AnalyzedReview{
-		Date: nextDay,
+	currentEntry := request.AnalyzedReview{
+		Date: nextDayAsString,
 		Sentiment: sentimentAvg,
 		Stars: starsAvg,
+		Content: lastEntry.Content,
 	}
 	reviews = append(reviews, currentEntry)
 	return fitMissingDays(currentEntry, finalEntry, reviews)
 }
 
 
-func getFlattenReviews(reviews request.Reviews) []AnalyzedReview {
+func getFlattenReviews(reviews request.Reviews) []request.AnalyzedReview {
 	analyzedReviews := getAnalyzedReviewsFromReviews(reviews); if len(analyzedReviews) > 0 {
 		return getAveragedAnalyzedReviews(analyzedReviews)
 	}
-	return []AnalyzedReview{}
+	return []request.AnalyzedReview{}
 }
 
-func getAnalyzedReviewsFromReviews(reviews request.Reviews) []AnalyzedReview {
-	var finalAnalyzedReviews []AnalyzedReview
+func getAnalyzedReviewsFromReviews(reviews request.Reviews) []request.AnalyzedReview {
+	var finalAnalyzedReviews []request.AnalyzedReview
 	for _, r := range reviews.Reviews {
 		if len(r.Content) > 0 {
 			c, e := exec.GetSentimentAnalysisFromSentence(r.Content); if e == nil {
-				finalAnalyzedReviews = append(finalAnalyzedReviews, AnalyzedReview{r.Date, c, float64(r.Stars)})
+				finalAnalyzedReviews = append(finalAnalyzedReviews, request.AnalyzedReview{
+					Content: r.Content,
+					Date: r.Date,
+					Sentiment: c,
+					Stars: float64(r.Stars),
+				})
 			}
 		}
 	}
 	return finalAnalyzedReviews
 }
 
-func getAveragedAnalyzedReviews(reviews []AnalyzedReview) []AnalyzedReview {
-	var finalAveragedReviews []AnalyzedReview
+func getAveragedAnalyzedReviews(reviews []request.AnalyzedReview) []request.AnalyzedReview {
+	var finalAveragedReviews []request.AnalyzedReview
 	for _, r := range reviews {
-		f := filterReviewsByDate(r.Date, reviews); if len(f) == 1 {
-			finalAveragedReviews = append(finalAveragedReviews, r)
+		if len(finalAveragedReviews) == 0 {
+			finalAveragedReviews = append(finalAveragedReviews, filterReviewsByDate(r.Date, reviews))
 		} else {
-			finalAveragedReviews = append(finalAveragedReviews, getAnalyzedReviewFromSliceOfAnalyzedReviews(f))
+			isDateAlreadyInBucket := false
+			for _, rw := range finalAveragedReviews {
+				if r.Date == rw.Date {
+					isDateAlreadyInBucket = true
+				}
+			}
+			if !isDateAlreadyInBucket {
+				finalAveragedReviews = append(finalAveragedReviews, filterReviewsByDate(r.Date, reviews))
+			}
 		}
 	}
 	return finalAveragedReviews
 }
 
-func getAnalyzedReviewFromSliceOfAnalyzedReviews(reviews []AnalyzedReview) AnalyzedReview {
+func getAnalyzedReviewFromSliceOfAnalyzedReviews(reviews []request.AnalyzedReview) request.AnalyzedReview {
 	var sentimentSum float64
 	var starsSum float64
 	length := float64(len(reviews))
@@ -107,28 +120,38 @@ func getAnalyzedReviewFromSliceOfAnalyzedReviews(reviews []AnalyzedReview) Analy
 		sentimentSum += r.Sentiment
 		starsSum += r.Stars
 	}
-	return AnalyzedReview {
+	return request.AnalyzedReview {
+		Content: reviews[0].Content,
 		Date: reviews[0].Date,
 		Sentiment: sentimentSum / length,
 		Stars: starsSum / length,
 	}
 }
 
-func filterReviewsByDate(date string, reviews []AnalyzedReview) []AnalyzedReview {
-	var filteredReviews []AnalyzedReview
+func filterReviewsByDate(date string, reviews []request.AnalyzedReview) request.AnalyzedReview {
+	var filteredReviews []request.AnalyzedReview
 	for _, r := range reviews {
 		if date == r.Date {
 			filteredReviews = append(filteredReviews, r)
 		}
 	}
-	return filteredReviews
+	if len(filteredReviews) == 1 {
+		return filteredReviews[0]
+	}
+	return getAnalyzedReviewFromSliceOfAnalyzedReviews(filteredReviews)
 }
 
 // Returns a date in string format yy-mm-dd
 func dateToString(date time.Time) string {
-	dateEntries := make([]string, 3)
-	dateEntries[0] = strconv.Itoa(date.Year())
-	dateEntries[1] = strconv.Itoa(int(date.Month())); if len(dateEntries[1]) == 1 { dateEntries[1] = "0" + dateEntries[1] }
-	dateEntries[2] = strconv.Itoa(date.Day()); if len(dateEntries[2]) == 1 { dateEntries[2] = "0" + dateEntries[2] }
+	var dateEntries  []string
+	dateEntries = append(dateEntries, strconv.Itoa(date.Year()))
+	dateEntries = append(dateEntries, strconv.Itoa(int(date.Month())))
+	if len(dateEntries[1]) == 1 {
+		dateEntries[1] = "0" + dateEntries[1]
+	}
+	dateEntries = append(dateEntries, strconv.Itoa(date.Day()))
+	if len(dateEntries[2]) == 1 {
+		dateEntries[2] = "0" + dateEntries[2]
+	}
 	return strings.Join(dateEntries, "-")
 }

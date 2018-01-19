@@ -17,6 +17,12 @@ func getQueryURLByEndpointAndQueryParameters(endpoint string, queryParameters in
 	return strings.Join([]string{itemURL, v.Encode()}, "?")
 }
 
+func getReviewRequestQueryURL() string {
+	config := configuration.GetConfiguration()
+	mainURL := strings.Join([]string{config.REMOTE.HOST, config.REMOTE.PORT}, ":")
+	return strings.Join([]string{mainURL, config.REMOTE.ENDPOINTS.BASE, config.REMOTE.ENDPOINTS.REVIEWTMP}, "/")
+}
+
 func unmarshalHttpResponseIntoInterface(r *http.Response, v interface{}) interface{} {
 	body, readErr := ioutil.ReadAll(r.Body); if readErr != nil {
 		panic(readErr)
